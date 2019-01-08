@@ -5,25 +5,35 @@ const constants = require('./constants')
 
 ENCODING = constants.ENCODING
 GITHUB_LATEST_RELEASE_API = constants.GITHUB_LATEST_RELEASE_API
-
-// callApi(GITHUB_LATEST_RELEASE_API).then(({ response }) => {
-//   const createdTime = response.created_at
-//   console.log('createdTime', createdTime)
-// })
-
-// console.log({ createdTime })
+GITHUB_SEARCH_API = constants.GITHUB_SEARCH_API
+millisecondsToDays = constants.millisecondsToDays
 
 fs.readFile(
   path.resolve(__dirname + '/../', 'package.json'),
   ENCODING,
   function(err, data) {
     const obj = JSON.parse(data)
-    const dependencies = obj.dependencies
-    console.log(Object.keys(dependencies))
+    const dependencies = Object.keys(obj.dependencies)
+    dependencies.forEach(dependency => {
+      const url = GITHUB_SEARCH_API + dependency
+      callApi(url).then(({ response }) => {
+        const {
+          name,
+          owner: { login }
+        } = response.items[0]
+        const repo = name
+        const owner = login
+        const url = GITHUB_LATEST_RELEASE_API(owner, repo)
 
-    //loop the dependencies
-    //find the repo
-    //find time
-    //filter time if it is less than 3 days
+        callApi(url).then(({ response }) => {
+          const createdDate = new Date(response.created_at)
+          const today = new Date()
+
+          //if (createdDate && millisecondsToDays(today - createdDate) < 3) {
+          console.log('The repo', name, 'is created on', createdDate)
+          // }
+        })
+      })
+    })
   }
 )
